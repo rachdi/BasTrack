@@ -1,5 +1,5 @@
 {
-  "name": "AmericaFerBascule",
+  "name": "AmericaFer Bascule",
   "short_name": "AFBascule",
   "description": "Application de gestion des pesees - AmericaFer Rachdi Bassem",
   "start_url": "./index.html",
@@ -9,7 +9,10 @@
   "theme_color": "#0a0e13",
   "orientation": "portrait-primary",
   "lang": "fr",
-  "categories": ["business", "productivity"],
+  "categories": [
+    "business",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "./icon-192.png",

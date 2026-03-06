@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AmericaFer — Portail Caisse</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+:root{
+  --bg:#12151a;--bg2:#1a1f28;--bg3:#222836;
+  --brd:#2a3344;--brd2:#3a4a60;
+  --gold:#e8a020;--gold2:#f5b730;--gd:rgba(232,160,32,.13);
+  --grn:#00c97a;--grd:rgba(0,201,122,.12);
+  --red:#ff4d4d;--rdd:rgba(255,77,77,.12);
+  --text:#e8edf5;--t2:#8899b0;--t3:#3d5068;
+  --r:10px;--rs:7px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* TOPBAR */
+#topbar{background:linear-gradient(160deg,#0d111a,#1a2236,#1f2d45);border-bottom:1px solid var(--brd);padding:12px 24px;display:flex;align-items:center;gap:14px}
+.tb-logo{background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:9px;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-weight:800;font-size:13px;color:#000}
+.tb-info h1{font-size:16px;font-weight:700;color:var(--gold2)}
+.tb-info p{font-size:10px;color:var(--t2);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.8px}
+.tb-status{margin-left:auto;font-size:11px;font-family:'JetBrains Mono',monospace;padding:5px 12px;border-radius:20px;font-weight:600}
+.tb-status.connected{background:var(--grd);color:var(--grn)}
+.tb-status.disconnected{background:var(--rdd);color:var(--red)}
+
+/* MAIN */
+main{max-width:1100px;margin:0 auto;padding:24px 20px}
+
+/* SETUP CARD */
+#setup-card{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:28px;margin-bottom:24px;max-width:560px;margin:30px auto}
+#setup-card h2{font-size:17px;font-weight:700;margin-bottom:6px;color:var(--gold2)}
+#setup-card p{font-size:13px;color:var(--t2);margin-bottom:20px;line-height:1.6}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t2);margin-bottom:6px}
+.inp{width:100%;background:#0e1218;border:1px solid var(--brd2);border-radius:var(--rs);padding:11px 14px;font-family:'Space Grotesk',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color .15s}
+.inp:focus{border-color:var(--gold)}
+textarea.inp{resize:vertical;min-height:90px;font-size:12px;font-family:'JetBrains Mono',monospace}
+.btn{padding:12px 20px;border-radius:var(--r);border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:opacity .15s}
+.btn:active{opacity:.85}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;width:100%}
+.btn-out{background:transparent;border:1px solid var(--brd2);color:var(--text)}
+
+/* SEARCH BAR */
+#search-bar{display:flex;gap:12px;margin-bottom:24px}
+#search-bar .inp{flex:1;font-size:16px;padding:14px 18px}
+#search-bar .btn{flex-shrink:0;padding:14px 22px}
+
+/* FILTERS */
+.filters{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.filt{padding:6px 14px;border-radius:20px;border:1px solid var(--brd2);background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .15s}
+.filt.active{background:var(--gd);border-color:var(--gold);color:var(--gold2)}
+
+/* STATS ROW */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+@media(max-width:600px){.stats-row{grid-template-columns:1fr 1fr}}
+.stat{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:14px 16px}
+.stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);margin-bottom:6px}
+.stat-val{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:var(--gold2)}
+.stat-sub{font-size:10px;color:var(--t3);margin-top:3px}
+
+/* RESULTS */
+#results-count{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--t3);margin-bottom:12px}
+.result-card{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);margin-bottom:12px;overflow:hidden;transition:border-color .15s}
+.result-card:hover{border-color:var(--gold)}
+.rc-top{padding:14px 18px;display:flex;align-items:center;gap:14px;cursor:pointer}
+.plate-tag{background:rgba(232,160,32,.1);border:1px solid rgba(232,160,32,.3);border-radius:6px;padding:7px 12px;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--gold2);letter-spacing:2px;flex-shrink:0}
+.rc-info{flex:1;min-width:0}
+.rc-metal{font-size:13px;font-weight:600;color:var(--text)}
+.rc-date{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.rc-ticket{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace}
+.rc-net{text-align:right;flex-shrink:0}
+.rc-net-val{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--grn)}
+.rc-net-lbl{font-size:10px;color:var(--t3)}
+.rc-detail{display:none;border-top:1px solid var(--brd);padding:16px 18px}
+.result-card.expanded .rc-detail{display:block}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:500px){.detail-grid{grid-template-columns:1fr}}
+.detail-photos{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.detail-photo-wrap{flex:1;min-width:120px}
+.detail-photo-wrap label{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);letter-spacing:.8px;display:block;margin-bottom:5px}
+.detail-photo-wrap img{width:100%;border-radius:var(--rs);border:1px solid var(--brd);max-height:180px;object-fit:cover}
+.detail-photo-wrap .no-photo{background:var(--bg3);border:1px dashed var(--brd2);border-radius:var(--rs);height:100px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--t3)}
+.dl-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--brd)}
+.dl-row:last-child{border-bottom:none}
+.dk{font-size:12px;color:var(--t2)}
+.dv{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text)}
+.dv.net{color:var(--grn);font-size:16px}
+.dv.plate-v{color:var(--gold2);letter-spacing:2px}
+.rc-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.btn-sm{padding:7px 14px;font-size:12px;border-radius:var(--rs)}
+
+/* EMPTY */
+.empty{text-align:center;padding:60px 20px;color:var(--t3)}
+.empty-ico{font-size:48px;margin-bottom:12px}
+.empty-ttl{font-size:16px;font-weight:600;color:var(--t2);margin-bottom:6px}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg3);color:var(--text);border:1px solid var(--brd2);border-radius:20px;padding:10px 20px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:100;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* PRINT TICKET */
+.ticket-modal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.9);display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.ticket-modal.show{display:flex}
+.ticket-paper{background:#fff;color:#000;border-radius:6px;padding:20px 16px;width:100%;max-width:310px;font-family:'JetBrains Mono',monospace;max-height:80vh;overflow-y:auto}
+.tmbtns{display:flex;gap:10px;margin-top:14px;width:100%;max-width:310px}
+.tmbtns .btn{flex:1}
+.tk-header{text-align:center;border-bottom:2px dashed #ccc;padding-bottom:12px;margin-bottom:12px}
+.tk-co{font-size:14px;font-weight:700;letter-spacing:1px}
+.tk-sub{font-size:9px;color:#777;margin-top:2px}
+.tk-id{font-size:9px;color:#aaa;margin-top:6px}
+.tk-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.tk-k{font-size:10px;color:#888}
+.tk-v{font-size:12px;font-weight:700}
+.tk-div{border-top:1px dashed #ccc;margin:9px 0}
+.tk-big{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.tk-bk{font-size:13px;font-weight:700}
+.tk-bv{font-size:22px;font-weight:700}
+.tk-foot{text-align:center;margin-top:12px;border-top:1px dashed #ccc;padding-top:10px;font-size:8px;color:#bbb}
+
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:2px}
+@media print{body>*{display:none}#tprint{display:block!important}}
+#tprint{display:none}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="tb-logo">AFB</div>
+  <div class="tb-info">
+    <h1>AmericaFer Bascule — Portail Caisse</h1>
+    <p>Vérification des pesées à distance</p>
+  </div>
+  <div class="tb-status disconnected" id="fb-status">⚫ Non connecté</div>
+</div>
+
+<!-- SETUP CARD (shown until connected) -->
+<div id="setup-wrapper">
+  <div id="setup-card">
+    <h2>🔥 Connexion Firebase</h2>
+    <p>Collez la configuration Firebase pour accéder à toutes les pesées en temps réel. Cette configuration est la même que celle de l'app AmericaFerBascule.</p>
+    <div class="field">
+      <label>Configuration Firebase (JSON)</label>
+      <textarea class="inp" id="fb-config" placeholder='{
+  "apiKey": "...",
+  "authDomain": "...",
+  "databaseURL": "...",
+  "projectId": "..."
+}'></textarea>
+    </div>
+    <button class="btn btn-gold" onclick="connectFirebase()">🔥 Se connecter</button>
+    <div style="margin-top:12px;font-size:11px;color:var(--t3);line-height:1.7">
+      Accès en lecture seule — aucune modification possible depuis ce portail
+    </div>
+  </div>
+</div>
+
+<!-- MAIN DASHBOARD (hidden until connected) -->
+<div id="dashboard" style="display:none">
+  <main>
+    <!-- Stats -->
+    <div class="stats-row" id="stats-row">
+      <div class="stat"><div class="stat-lbl">Pesées total</div><div class="stat-val" id="s-total">0</div><div class="stat-sub">Toutes périodes</div></div>
+      <div class="stat"><div class="stat-lbl">Aujourd'hui</div><div class="stat-val" id="s-today">0</div><div class="stat-sub">Pesées du jour</div></div>
+      <div class="stat"><div class="stat-lbl">Poids net total</div><div class="stat-val" id="s-net">0</div><div class="stat-sub">Tonnes cumulées</div></div>
+      <div class="stat"><div class="stat-lbl">En attente</div><div class="stat-val" id="s-pending">0</div><div class="stat-sub">Tare à valider</div></div>
+    </div>
+
+    <!-- Search -->
+    <div id="search-bar">
+      <input class="inp" id="search-inp" type="text" placeholder="🔍  Rechercher par plaque ou numéro de ticket…" oninput="renderResults()">
+      <button class="btn btn-out" onclick="document.getElementById('search-inp').value='';renderResults()">✕</button>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+      <button class="filt active" id="f-all" onclick="setFilter('all')">Toutes</button>
+      <button class="filt" id="f-today" onclick="setFilter('today')">Aujourd'hui</button>
+      <button class="filt" id="f-week" onclick="setFilter('week')">Cette semaine</button>
+      <button class="filt" id="f-month" onclick="setFilter('month')">Ce mois</button>
+    </div>
+
+    <div id="results-count"></div>
+    <div id="results-list"></div>
+  </main>
+</div>
+
+<!-- TICKET MODAL -->
+<div class="ticket-modal" id="tmodal">
+  <div class="ticket-paper" id="tpaper"></div>
+  <div class="tmbtns">
+    <button class="btn btn-out" onclick="document.getElementById('tmodal').classList.remove('show')">✕ Fermer</button>
+    <button class="btn btn-gold" onclick="printT()">🖨️ Imprimer</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="tprint"></div>
+
+<script>
+let pesees  = [];
+let pending = [];
+let fbApp   = null;
+let fbDb    = null;
+let curFilter = 'all';
+let curTicketHTML = '';
+
+// ── FIREBASE ──
+function connectFirebase() {
+  const raw = document.getElementById('fb-config').value.trim();
+  if (!raw) { toast('⚠️ Collez la config Firebase'); return; }
+  try {
+    const jsonStr = raw.replace(/^[^{]*/,'').replace(/[^}]*$/,'');
+    const cfg = JSON.parse(jsonStr);
+    if (!cfg.databaseURL) { toast('❌ databaseURL manquant'); return; }
+    fbApp = firebase.initializeApp(cfg, 'caisse_'+Date.now());
+    fbDb  = fbApp.database();
+    fbDb.ref('.info/connected').on('value', snap => {
+      const ok = snap.val()===true;
+      const el = document.getElementById('fb-status');
+      if (ok) {
+        el.className='tb-status connected'; el.textContent='🟢 En ligne';
+        document.getElementById('setup-wrapper').style.display='none';
+        document.getElementById('dashboard').style.display='block';
+        startListeners();
+        localStorage.setItem('afb_caisse_cfg', raw);
+        toast('✅ Connecté — données en direct');
+      } else {
+        el.className='tb-status disconnected'; el.textContent='🔴 Hors ligne';
+      }
+    });
+  } catch(e) { toast('❌ Config invalide : '+e.message); }
+}
+
+function startListeners() {
+  fbDb.ref('pesees').on('value', snap => {
+    const d = snap.val();
+    pesees = d ? Object.values(d).sort((a,b)=>new Date(b.dateOut||b.dateIn)-new Date(a.dateOut||a.dateIn)) : [];
+    updateStats();
+    renderResults();
+  });
+  fbDb.ref('pending').on('value', snap => {
+    const d = snap.val();
+    pending = d ? Object.values(d) : [];
+    document.getElementById('s-pending').textContent = pending.length;
+  });
+}
+
+// ── FILTER ──
+function setFilter(f) {
+  curFilter = f;
+  document.querySelectorAll('.filt').forEach(b=>b.classList.remove('active'));
+  document.getElementById('f-'+f).classList.add('active');
+  renderResults();
+}
+
+function filterDate(p) {
+  const d = new Date(p.dateOut||p.dateIn);
+  const now = new Date();
+  if (curFilter==='today') {
+    return d.toDateString()===now.toDateString();
+  } else if (curFilter==='week') {
+    const week = new Date(now); week.setDate(now.getDate()-7);
+    return d >= week;
+  } else if (curFilter==='month') {
+    return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+  }
+  return true;
+}
+
+// ── STATS ──
+function updateStats() {
+  const today = new Date().toDateString();
+  const todayC = pesees.filter(p=>new Date(p.dateOut||p.dateIn).toDateString()===today).length;
+  const totalNet = pesees.reduce((a,p)=>a+(p.net||0),0);
+  document.getElementById('s-total').textContent = pesees.length;
+  document.getElementById('s-today').textContent = todayC;
+  document.getElementById('s-net').textContent   = (totalNet/1000).toFixed(1)+'t';
+}
+
+// ── RENDER ──
+function renderResults() {
+  const q = (document.getElementById('search-inp').value||'').trim().toUpperCase();
+  let fil = pesees.filter(filterDate);
+  if (q) fil = fil.filter(p=>p.plate.includes(q)||p.id.toUpperCase().includes(q)||(p.metal||'').toUpperCase().includes(q));
+
+  document.getElementById('results-count').textContent =
+    fil.length ? `${fil.length} pesée${fil.length!==1?'s':''}` : '';
+
+  if (!fil.length) {
+    document.getElementById('results-list').innerHTML=`
+      <div class="empty">
+        <div class="empty-ico">${q?'🔍':'📭'}</div>
+        <div class="empty-ttl">${q?'Aucun résultat pour "'+q+'"':'Aucune pesée enregistrée'}</div>
+      </div>`; return;
+  }
+
+  document.getElementById('results-list').innerHTML = fil.map(p => {
+    const din  = new Date(p.dateIn);
+    const dout = new Date(p.dateOut||p.dateIn);
+    const dateStr = dout.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'});
+    const timeStr = dout.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    const passage = p.passage ? ` <span style="font-size:10px;color:var(--ora)">Passage n°${p.passage}</span>` : '';
+    return `<div class="result-card" id="rc-${p.id}">
+      <div class="rc-top" onclick="toggleCard('${p.id}')">
+        <div class="plate-tag">${esc(p.plate)}</div>
+        <div class="rc-info">
+          <div class="rc-metal">${esc(p.metal)}${passage}</div>
+          <div class="rc-date">${dateStr} ${timeStr}</div>
+          <div class="rc-ticket">#${p.id}</div>
+        </div>
+        <div class="rc-net">
+          <div class="rc-net-val">${(p.net||0).toLocaleString('fr-FR')}</div>
+          <div class="rc-net-lbl">kg net</div>
+        </div>
+      </div>
+      <div class="rc-detail">
+        <div class="detail-photos">
+          ${p.photoWeight ? `<div class="detail-photo-wrap"><label>⚖️ Balance chargé</label><img src="${p.photoWeight}" alt="Balance chargé"></div>` : '<div class="detail-photo-wrap"><label>⚖️ Balance chargé</label><div class="no-photo">Pas de photo</div></div>'}
+          ${p.photoTare   ? `<div class="detail-photo-wrap"><label>🔄 Balance vide (tare)</label><img src="${p.photoTare}" alt="Tare"></div>` : '<div class="detail-photo-wrap"><label>🔄 Balance vide (tare)</label><div class="no-photo">Pas de photo</div></div>'}
+          ${p.photoPlate  ? `<div class="detail-photo-wrap"><label>🚛 Plaque</label><img src="${p.photoPlate}" alt="Plaque"></div>` : ''}
+        </div>
+        <div class="detail-grid">
+          <div>
+            <div class="dl-row"><span class="dk">N° Ticket</span><span class="dv" style="font-size:11px">${p.id}</span></div>
+            <div class="dl-row"><span class="dk">Plaque</span><span class="dv plate-v">${esc(p.plate)}</span></div>
+            <div class="dl-row"><span class="dk">Matière</span><span class="dv">${esc(p.metal)}</span></div>
+            ${p.notes?`<div class="dl-row"><span class="dk">Notes</span><span class="dv" style="font-size:11px;font-family:'Space Grotesk'">${esc(p.notes)}</span></div>`:''}
+          </div>
+          <div>
+            <div class="dl-row"><span class="dk">Entrée</span><span class="dv" style="font-size:11px">${din.toLocaleDateString('fr-FR')} ${din.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span></div>
+            <div class="dl-row"><span class="dk">Sortie</span><span class="dv" style="font-size:11px">${dout.toLocaleDateString('fr-FR')} ${dout.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span></div>
+            <div class="dl-row"><span class="dk">Poids brut</span><span class="dv">${(p.brut||0).toLocaleString('fr-FR')} kg</span></div>
+            <div class="dl-row"><span class="dk">Tare</span><span class="dv">${(p.tare||0).toLocaleString('fr-FR')} kg</span></div>
+            <div class="dl-row"><span class="dk">Poids net</span><span class="dv net">${(p.net||0).toLocaleString('fr-FR')} kg</span></div>
+          </div>
+        </div>
+        <div class="rc-actions">
+          <button class="btn btn-out btn-sm" onclick="showTicket('${p.id}')">🎫 Voir ticket</button>
+          <button class="btn btn-out btn-sm" onclick="exportRow('${p.id}')">📊 Exporter CSV</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCard(id){ document.getElementById('rc-'+id)?.classList.toggle('expanded'); }
+
+// ── TICKET ──
+function showTicket(id) {
+  const p = pesees.find(x=>x.id===id); if(!p) return;
+  const din  = new Date(p.dateIn);
+  const dout = new Date(p.dateOut||p.dateIn);
+  curTicketHTML = `
+    <div class="tk-header">
+      <div class="tk-co">AMERICA FER BASCULE</div>
+      <div class="tk-id">N° ${p.id}</div>
+      <div class="tk-id">Entrée: ${din.toLocaleDateString('fr-FR')} ${din.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>
+      <div class="tk-id">Sortie: ${dout.toLocaleDateString('fr-FR')} ${dout.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>
+    </div>
+    <div class="tk-row"><span class="tk-k">PLAQUE</span><span class="tk-v" style="font-size:15px;letter-spacing:2px">${esc(p.plate)}</span></div>
+    <div class="tk-row"><span class="tk-k">MATIÈRE</span><span class="tk-v">${esc(p.metal)}</span></div>
+    <div class="tk-div"></div>
+    <div class="tk-row"><span class="tk-k">POIDS BRUT</span><span class="tk-v">${(p.brut||0).toLocaleString('fr-FR')} kg</span></div>
+    <div class="tk-row"><span class="tk-k">TARE</span><span class="tk-v">${(p.tare||0).toLocaleString('fr-FR')} kg</span></div>
+    <div class="tk-div"></div>
+    <div class="tk-big"><span class="tk-bk">POIDS NET</span><span class="tk-bv">${(p.net||0).toLocaleString('fr-FR')} kg</span></div>
+    ${p.notes?`<div class="tk-div"></div><div style="font-size:9px;color:#888">NOTE: ${esc(p.notes)}</div>`:''}
+    <div class="tk-foot">
+      <div style="font-size:16px;letter-spacing:3px">||| ${p.id.slice(-8)} |||</div>
+      <div>AMERICA FER BASCULE</div>
+      <div>Développé par Rachdi Bassem</div>
+    </div>`;
+  document.getElementById('tpaper').innerHTML = curTicketHTML;
+  document.getElementById('tmodal').classList.add('show');
+}
+
+function printT() {
+  document.getElementById('tprint').innerHTML=`<style>@page{margin:4mm;size:80mm auto}#tprint{display:block!important;font-family:'JetBrains Mono',monospace}body>*{display:none}#tprint,#tprint *{display:revert}.ticket-paper{max-width:72mm;margin:0 auto}</style><div class="ticket-paper">${curTicketHTML}</div>`;
+  window.print();
+}
+
+// ── EXPORT ──
+function exportRow(id) {
+  const p = pesees.find(x=>x.id===id); if(!p) return;
+  const din=new Date(p.dateIn), dout=new Date(p.dateOut||p.dateIn);
+  const row = [p.id, din.toLocaleDateString('fr-FR'), din.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+    dout.toLocaleDateString('fr-FR'), dout.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+    p.plate, p.metal, p.brut, p.tare, p.net, p.notes||''];
+  const h = ['ID','Date entrée','Heure entrée','Date sortie','Heure sortie','Plaque','Métal','Brut(kg)','Tare(kg)','Net(kg)','Notes'];
+  const csv = [h,row].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(';')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv'}));
+  a.download=`${p.plate}_${p.id}.csv`; a.click();
+  toast('📊 CSV exporté');
+}
+
+// ── UTILS ──
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+let tt;
+function toast(msg){const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),3200)}
+
+// ── AUTO RECONNECT ──
+window.onload = () => {
+  const saved = localStorage.getItem('afb_caisse_cfg');
+  if (saved) {
+    document.getElementById('fb-config').value = saved;
+    connectFirebase();
+  }
+};
+</script>
+</body>
+</html>

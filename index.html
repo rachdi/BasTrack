@@ -297,7 +297,6 @@ input[type=file]{display:none}
             </select>
           </div>
           <button class="btn btn-gold" onclick="goToWeightIn()">Suivant → Photo du poids chargé</button>
-          <button class="btn btn-out" onclick="openTestMode()" style="margin-top:4px">🧪 Mode test — générer ticket démo</button>
         </div>
       </div>
     </div>
@@ -331,6 +330,7 @@ input[type=file]{display:none}
           </div>
           <button class="btn btn-gold" onclick="savePeseeEnAttente()">✅ Enregistrer — Camion en attente</button>
           <button class="btn btn-out" onclick="backToPlate()">← Retour</button>
+          <button class="btn btn-out" onclick="if(confirm('Abandonner cette saisie et commencer un nouveau ticket ?')) resetNewForm();" style="margin-top:4px;border-color:var(--red);color:var(--red)">🆕 Nouveau ticket (annuler celui-ci)</button>
         </div>
       </div>
     </div>
@@ -433,6 +433,14 @@ input[type=file]{display:none}
     <div class="card">
       <div class="ch"><span class="chi">🏢</span><span class="cht">Entreprise</span></div>
       <div class="cb">
+        <div class="fld">
+          <div class="fl">API OCR.space <span class="opt">— alternative gratuite Gemini</span></div>
+          <input class="inp" id="s-ocrkey" type="password" placeholder="Clé OCR.space (gratuit sur ocr.space)" oninput="saveSettings()">
+          <div style="font-size:10px;color:var(--t3);margin-top:5px;line-height:1.6">
+            Gratuit sur <strong style="color:var(--gold2)">ocr.space</strong> → 25 000 req/mois<br>
+            Si les deux clés sont renseignées → Gemini en priorité, OCR.space en fallback
+          </div>
+        </div>
         <div class="fld"><div class="fl">Nom</div><input class="inp" id="s-co" type="text" placeholder="AMERICA FER RECYCLAGE" oninput="saveSettings()"></div>
         <div class="fld"><div class="fl">Adresse</div><input class="inp" id="s-addr" type="text" placeholder="Adresse…" oninput="saveSettings()"></div>
         <div class="fld"><div class="fl">Téléphone</div><input class="inp" id="s-tel" type="tel" placeholder="+33 …" oninput="saveSettings()"></div>
@@ -786,6 +794,71 @@ async function testGeminiKey() {
     btn.textContent = '⚠️ Erreur réseau';
   }
   setTimeout(()=>{ btn.textContent='🔑 Tester la clé'; }, 3000);
+}
+
+// ══════════════════════════════════════
+// OCR.SPACE — FREE ALTERNATIVE TO GEMINI
+// ══════════════════════════════════════
+async function ocrSpaceRead(base64img, type) {
+  const key = settings.ocrkey || '';
+  if (!key) return null;
+
+  // Convert base64 to blob URL format expected by ocr.space
+  const formData = new FormData();
+  formData.append('base64Image', base64img);
+  formData.append('language', 'fre');
+  formData.append('isOverlayRequired', 'false');
+  formData.append('detectOrientation', 'true');
+  formData.append('scale', 'true');
+  formData.append('OCREngine', '2'); // Engine 2 = better for numbers
+
+  try {
+    const r = await fetch('https://api.ocr.space/parse/image', {
+      method: 'POST',
+      headers: { 'apikey': key },
+      body: formData
+    });
+    const d = await r.json();
+    if (d.IsErroredOnProcessing) return null;
+    const text = d.ParsedResults?.[0]?.ParsedText || '';
+    if (!text) return null;
+
+    if (type === 'plate') {
+      // Extract plate pattern: letters-numbers-letters or similar
+      const match = text.match(/[A-Z0-9]{2,3}[-\s]?[0-9]{2,4}[-\s]?[A-Z0-9]{2,3}/i);
+      return match ? match[0].replace(/\s/g,'-').toUpperCase() : text.replace(/[^A-Z0-9\-]/gi,'').trim().toUpperCase();
+    } else {
+      // Extract biggest number (weight)
+      const nums = text.match(/\d[\d\s,\.]{2,}/g);
+      if (!nums) return null;
+      // Take longest number sequence = likely the weight display
+      const best = nums.sort((a,b) => b.replace(/\D/g,'').length - a.replace(/\D/g,'').length)[0];
+      return best.replace(/[\s,\.]/g,'');
+    }
+  } catch(e) {
+    console.warn('OCR.space error:', e.message);
+    return null;
+  }
+}
+
+// SMART OCR: tries Gemini first, then OCR.space as fallback
+async function smartOCR(base64img, geminiPrompt, type, statusEl) {
+  // Try Gemini first
+  if (settings.apikey) {
+    statusEl.style.display='flex'; statusEl.className='ocr-status loading';
+    statusEl.innerHTML='<span class="spin">⟳</span> Gemini — lecture en cours…';
+    const r = await geminiOCR(base64img, geminiPrompt);
+    if (r) return { result: r, source: 'Gemini' };
+  }
+
+  // Fallback to OCR.space
+  if (settings.ocrkey) {
+    statusEl.innerHTML='<span class="spin">⟳</span> OCR.space — lecture en cours…';
+    const r = await ocrSpaceRead(base64img, type);
+    if (r) return { result: r, source: 'OCR.space' };
+  }
+
+  return null;
 }
 
 function toBase64(file) {
@@ -1199,12 +1272,12 @@ function delPesee(id){
 // SETTINGS
 // ══════════════════════════════════════
 function loadSettings(){
-  ['apikey','co','addr','tel','siret'].forEach(k=>{
+  ['apikey','ocrkey','co','addr','tel','siret'].forEach(k=>{
     const e=document.getElementById('s-'+k); if(e) e.value=settings[k]||'';
   });
 }
 function saveSettings(){
-  ['apikey','co','addr','tel','siret'].forEach(k=>{
+  ['apikey','ocrkey','co','addr','tel','siret'].forEach(k=>{
     const e=document.getElementById('s-'+k); if(e) settings[k]=e.value;
   });
   localStorage.setItem('afb_settings',JSON.stringify(settings));
@@ -1250,38 +1323,6 @@ let tt;
 function toast(msg){const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),3200)}
 
 
-// ══════════════════════════════════════
-// TEST MODE
-// ══════════════════════════════════════
-function openTestMode() {
-  document.getElementById('test-modal').classList.add('show');
-}
-function closeTestModal() {
-  document.getElementById('test-modal').classList.remove('show');
-}
-function generateTestTicket() {
-  const plate = (document.getElementById('t-plate').value || 'TEST-01').toUpperCase();
-  const metal = document.getElementById('t-metal').value;
-  const brut  = parseFloat(document.getElementById('t-brut').value) || 25000;
-  const tare  = parseFloat(document.getElementById('t-tare').value) || 12000;
-  const notes = document.getElementById('t-notes').value || 'Ticket de démonstration';
-  const net   = brut - tare;
-  const now   = new Date();
-
-  // Build fake pesée (NOT saved to history)
-  const fakePesee = {
-    id: 'TEST-' + Date.now(),
-    dateIn:  now.toISOString(),
-    dateOut: now.toISOString(),
-    plate, metal, brut, tare, net,
-    notes: '[TEST] ' + notes,
-    photoPlate: null, photoWeight: null, photoTare: null
-  };
-
-  closeTestModal();
-  showTicket(fakePesee);
-  toast('🧪 Ticket de test généré — non enregistré dans l\'historique');
-}
 
 // ══════════════════════════════════════
 // INIT
@@ -1292,10 +1333,6 @@ loadSettings();
 setTimeout(autoReconnectFirebase, 500);
 </script>
 
-<!-- TEST MODE MODAL -->
-<div class="modal" id="test-modal" onclick="if(event.target===this)closeTestModal()">
-  <div class="msheet">
-    <div class="mhandle"></div>
     <div style="font-size:15px;font-weight:700;color:var(--gold2);margin-bottom:4px">🧪 Mode Test — Ticket Démo</div>
     <div style="font-size:12px;color:var(--t2);margin-bottom:16px">Générez un ticket de test sans peser de camion</div>
     <div class="fld"><div class="fl">Plaque</div><input class="inp mono" id="t-plate" type="text" placeholder="AB-123-CD" value="TEST-01"></div>
