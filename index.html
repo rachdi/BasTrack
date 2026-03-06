@@ -741,8 +741,8 @@ async function geminiOCR(base64img, prompt) {
   const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
   const b64data = base64img.replace(/^data:image\/[a-z+]+;base64,/, '');
 
-  // Try gemini-2.0-flash first, fallback to 1.5-flash
-  const models = ['gemini-1.5-flash-8b', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'];
+  // 8b = most generous free tier (1500/day, no per-minute limit issues)
+  const models = ['gemini-1.5-flash-8b', 'gemini-1.5-flash', 'gemini-2.0-flash-lite'];
 
   for (const model of models) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
@@ -801,7 +801,7 @@ async function testGeminiKey() {
   if (!key) { toast('⚠️ Saisissez une clé d\'abord'); return; }
   const btn = document.getElementById('test-key-btn');
   btn.textContent = '⟳ Test en cours…';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${key}`;
   try {
     const r = await fetch(url, {
       method:'POST',
