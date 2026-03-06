@@ -1,7 +1,7 @@
 {
   "name": "AmericaFer Bascule",
   "short_name": "AFBascule",
-  "description": "Application de gestion des pesees - AmericaFer Rachdi Bassem",
+  "description": "Application de gestion des pesees - AmericaFer",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
