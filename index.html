@@ -704,7 +704,7 @@ async function geminiOCR(base64img, prompt) {
   const b64data = base64img.replace(/^data:image\/[a-z+]+;base64,/, '');
 
   // Try gemini-2.0-flash first, fallback to 1.5-flash
-  const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest'];
+  const models = ['gemini-1.5-flash-8b', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'];
 
   for (const model of models) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
@@ -726,12 +726,16 @@ async function geminiOCR(base64img, prompt) {
       // Check for API errors
       if (d.error) {
         console.warn(`Gemini ${model} error:`, d.error.message);
-        // If key invalid, stop trying
         if (d.error.code === 400 || d.error.code === 403) {
           toast('❌ Clé API invalide — vérifiez dans Réglages');
           return null;
         }
-        continue; // Try next model
+        if (d.error.code === 429) {
+          console.warn(`${model} quota dépassé, essai suivant...`);
+          await new Promise(r => setTimeout(r, 1000)); // wait 1s before next model
+          continue;
+        }
+        continue;
       }
 
       const text = d.candidates?.[0]?.content?.parts?.[0]?.text;
