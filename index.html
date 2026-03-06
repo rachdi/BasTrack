@@ -537,9 +537,13 @@ function connectFirebase() {
   const raw = document.getElementById('s-fbconfig').value.trim();
   if (!raw) { toast('⚠️ Collez la configuration Firebase'); return; }
   try {
-    // Accept either raw JSON object or firebase.initializeApp({...}) format
     let cfg;
-    const jsonStr = raw.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
+    // Extract everything between first { and last }
+    const jsonStr = raw.replace(/^[^{]*\{/, '{').replace(/\}[^}]*$/, '}')
+      // Convert JS object notation to JSON (add quotes to unquoted keys)
+      .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3')
+      // Remove trailing commas
+      .replace(/,(\s*[}\]])/g, '$1');
     cfg = JSON.parse(jsonStr);
     if (!cfg.databaseURL) { toast('❌ databaseURL manquant dans la config'); return; }
 
