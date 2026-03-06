@@ -10,16 +10,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  /* Thème Pro — Blanc / Gris acier / Bleu marine */
-  --bg:#f0f2f5;--bg2:#ffffff;--bg3:#f8f9fb;
-  --brd:#e2e6ea;--brd2:#c8d0da;
-  --gold:#1a3a5c;--gold2:#1e4976;--gd:rgba(26,58,92,.08);
-  --grn:#0a7c4e;--grd:rgba(10,124,78,.1);
-  --red:#c0392b;--rdd:rgba(192,57,43,.09);
-  --ora:#c0611a;--ord:rgba(192,97,26,.1);
-  --text:#1a202c;--t2:#4a5568;--t3:#a0aec0;
-  --r:12px;--rs:8px;
-  --accent:#1a3a5c;--accent2:#2a5298;
+  /* Thème Pro Industriel — Anthracite + Ambre */
+  --bg:#12151a;--bg2:#1a1f28;--bg3:#222836;
+  --brd:#2a3344;--brd2:#3a4a60;
+  --gold:#e8a020;--gold2:#f5b730;--gd:rgba(232,160,32,.13);
+  --grn:#00c97a;--grd:rgba(0,201,122,.12);
+  --red:#ff4d4d;--rdd:rgba(255,77,77,.12);
+  --ora:#ff8c00;--ord:rgba(255,140,0,.13);
+  --text:#e8edf5;--t2:#8899b0;--t3:#3d5068;
+  --r:10px;--rs:7px;
+  --accent:#e8a020;--accent2:#f5b730;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;background:var(--bg)}
@@ -28,15 +28,15 @@ body{font-family:'Space Grotesk',sans-serif;color:var(--text);display:flex;flex-
 
 /* TOPBAR */
 #topbar{
-  background:linear-gradient(135deg,#1a3a5c,#2a5298);
+  background:linear-gradient(160deg,#0d111a 0%,#1a2236 60%,#1f2d45 100%);
   border-bottom:1px solid var(--brd);
   padding:8px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;
 }
 #topbar img{height:44px;width:auto;border-radius:7px;object-fit:contain;background:#fff;padding:2px}
 .tbi{flex:1}
-.tbn{font-size:12px;font-weight:700;color:#ffffff;letter-spacing:.3px;line-height:1.3}
+.tbn{font-size:12px;font-weight:700;color:var(--gold2);letter-spacing:.3px;line-height:1.3}
 .tbs{font-size:9px;color:rgba(255,255,255,.65);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.8px}
-.tbc{font-family:'JetBrains Mono',monospace;font-size:13px;color:#f0bc2e;font-weight:700;text-align:right}
+.tbc{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--gold2);font-weight:700;text-align:right}
 .tbd{font-size:9px;color:rgba(255,255,255,.5);font-family:'JetBrains Mono',monospace;text-align:right;margin-top:2px}
 
 /* SCREENS */
@@ -45,14 +45,14 @@ body{font-family:'Space Grotesk',sans-serif;color:var(--text);display:flex;flex-
 .sc.active{display:block}
 
 /* BOTTOM NAV */
-#bnav{background:#ffffff;border-top:1px solid var(--brd);display:flex;flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0);box-shadow:0 -2px 12px rgba(0,0,0,.06)}
+#bnav{background:var(--bg2);border-top:1px solid var(--brd);display:flex;flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0);box-shadow:0 -4px 20px rgba(0,0,0,.4)}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 4px 7px;background:none;border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;color:var(--t3);font-size:10px;font-weight:600;gap:3px;position:relative;transition:color .15s}
-.ni.active{color:var(--accent2)}
+.ni.active{color:var(--gold2)}
 .nico{font-size:20px;line-height:1}
 .nbdg{position:absolute;top:5px;right:calc(50% - 14px);background:var(--ora);color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 5px;font-family:'JetBrains Mono',monospace;display:none}
 
 /* CARDS */
-.card{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.card{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.3)}
 .ch{padding:11px 14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:8px}
 .chi{font-size:15px}
 .cht{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--t2)}
@@ -62,15 +62,15 @@ body{font-family:'Space Grotesk',sans-serif;color:var(--text);display:flex;flex-
 .fld{margin-bottom:13px}.fld:last-child{margin-bottom:0}
 .fl{font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;display:flex;align-items:center;gap:6px}
 .opt{font-size:10px;color:var(--t3);text-transform:none;letter-spacing:0;font-weight:400}
-.inp{width:100%;background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--rs);padding:11px 13px;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:500;color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none}
-.inp:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(42,82,152,.1)}
+.inp{width:100%;background:#0e1218;border:1px solid var(--brd2);border-radius:var(--rs);padding:11px 13px;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:500;color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none}
+.inp:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gd)}
 .inp::placeholder{color:var(--t3);font-weight:400;font-size:14px}
 .inp.mono{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;letter-spacing:3px;text-transform:uppercase}
 select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a9bb0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:34px;cursor:pointer}
 
 /* OCR ZONE */
-.ocr-zone{border:2px dashed var(--brd2);border-radius:var(--r);overflow:hidden;position:relative;cursor:pointer;transition:border-color .15s;background:#f8f9fb}
-.ocr-zone.has-img{border-color:var(--accent2);border-style:solid}
+.ocr-zone{border:2px dashed var(--brd2);border-radius:var(--r);overflow:hidden;position:relative;cursor:pointer;transition:border-color .15s;background:#0a0d12}
+.ocr-zone.has-img{border-color:var(--gold);border-style:solid}
 .ocr-zone img{width:100%;max-height:180px;object-fit:cover;display:block}
 .ocr-overlay{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
 .ocr-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;gap:6px}
@@ -81,7 +81,7 @@ input[type=file]{display:none}
 
 /* OCR STATUS */
 .ocr-status{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--rs);margin-top:8px;font-size:12px;font-weight:600}
-.ocr-status.loading{background:rgba(26,58,92,.09);color:var(--accent2)}
+.ocr-status.loading{background:var(--gd);color:var(--gold2)}
 .ocr-status.ok{background:var(--grd);color:var(--grn)}
 .ocr-status.err{background:var(--rdd);color:var(--red)}
 .spin{display:inline-block;animation:spin .7s linear infinite}
@@ -107,7 +107,7 @@ input[type=file]{display:none}
 .btn{width:100%;padding:14px 18px;border-radius:var(--r);border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s,transform .1s;letter-spacing:.2px;margin-bottom:8px}
 .btn:last-child{margin-bottom:0}
 .btn:active{transform:scale(.98);opacity:.88}
-.btn-gold{background:linear-gradient(135deg,#1a3a5c,#2a5298);color:#fff}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;font-weight:800}
 .btn-grn{background:var(--grn);color:#fff}
 .btn-ora{background:var(--ora);color:#fff}
 .btn-out{background:transparent;border:1px solid var(--brd2);color:var(--text)}
@@ -119,7 +119,7 @@ input[type=file]{display:none}
 .pend-card:active{border-color:var(--gold)}
 .pend-card.selected{border-color:var(--ora);box-shadow:0 0 0 2px var(--ord)}
 .pct{padding:12px 14px;display:flex;align-items:center;gap:10px}
-.plate-tag{background:rgba(26,58,92,.08);border:1px solid rgba(26,58,92,.2);border-radius:6px;padding:6px 10px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--accent);letter-spacing:2px;flex-shrink:0}
+.plate-tag{background:rgba(232,160,32,.1);border:1px solid rgba(232,160,32,.35);border-radius:6px;padding:6px 10px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--gold2);letter-spacing:2px;flex-shrink:0}
 .pci{flex:1;min-width:0}
 .pci-metal{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pci-time{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;margin-top:2px}
@@ -143,7 +143,7 @@ input[type=file]{display:none}
 .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 .scard{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:13px}
 .slbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);margin-bottom:5px}
-.sval{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:var(--accent2)}
+.sval{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:var(--gold2)}
 .ssub{font-size:10px;color:var(--t3);margin-top:2px}
 
 /* MODALS */
@@ -196,8 +196,8 @@ input[type=file]{display:none}
 .steps{display:flex;gap:0;margin-bottom:14px;border-radius:var(--rs);overflow:hidden;border:1px solid var(--brd);box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .step{flex:1;padding:8px 6px;text-align:center;font-size:10px;font-weight:700;background:var(--bg3);color:var(--t3);text-transform:uppercase;letter-spacing:.5px;border-right:1px solid var(--brd);transition:all .2s}
 .step:last-child{border-right:none}
-.step.active{background:rgba(26,58,92,.1);color:var(--accent2)}
-.step.done{background:rgba(10,124,78,.1);color:var(--grn)}
+.step.active{background:var(--gd);color:var(--gold2)}
+.step.done{background:var(--grd);color:var(--grn)}
 
 @media print{
   #app{display:none}
@@ -297,6 +297,7 @@ input[type=file]{display:none}
             </select>
           </div>
           <button class="btn btn-gold" onclick="goToWeightIn()">Suivant → Photo du poids chargé</button>
+          <button class="btn btn-out" onclick="openTestMode()" style="margin-top:4px">🧪 Mode test — générer ticket démo</button>
         </div>
       </div>
     </div>
@@ -897,14 +898,20 @@ function savePeseeEnAttente() {
 
   if(!brut||isNaN(brut)){ toast('⚠️ Saisissez le poids brut'); return; }
 
+  // Même plaque autorisée plusieurs fois — chaque passage est indépendant
+  const sameCount = pending.filter(p => p.plate === plate).length;
   const id = 'P'+Date.now();
   const pend = { id, date:new Date().toISOString(), plate, metal, brut, notes,
-    photoPlate: curPlatePhoto, photoWeight: curWeightPhoto };
+    photoPlate: curPlatePhoto, photoWeight: curWeightPhoto,
+    passage: sameCount + 1 };
   pending.unshift(pend);
   savePending();
   savePendingFb(pend);
   updatePendingBadge();
-  toast(`✅ ${plate} enregistré — en attente de la tare`);
+  if(sameCount > 0)
+    toast(`✅ ${plate} — Passage n°${sameCount+1} enregistré`);
+  else
+    toast(`✅ ${plate} enregistré — en attente de la tare`);
   resetNewForm();
 }
 
@@ -1242,6 +1249,40 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 let tt;
 function toast(msg){const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),3200)}
 
+
+// ══════════════════════════════════════
+// TEST MODE
+// ══════════════════════════════════════
+function openTestMode() {
+  document.getElementById('test-modal').classList.add('show');
+}
+function closeTestModal() {
+  document.getElementById('test-modal').classList.remove('show');
+}
+function generateTestTicket() {
+  const plate = (document.getElementById('t-plate').value || 'TEST-01').toUpperCase();
+  const metal = document.getElementById('t-metal').value;
+  const brut  = parseFloat(document.getElementById('t-brut').value) || 25000;
+  const tare  = parseFloat(document.getElementById('t-tare').value) || 12000;
+  const notes = document.getElementById('t-notes').value || 'Ticket de démonstration';
+  const net   = brut - tare;
+  const now   = new Date();
+
+  // Build fake pesée (NOT saved to history)
+  const fakePesee = {
+    id: 'TEST-' + Date.now(),
+    dateIn:  now.toISOString(),
+    dateOut: now.toISOString(),
+    plate, metal, brut, tare, net,
+    notes: '[TEST] ' + notes,
+    photoPlate: null, photoWeight: null, photoTare: null
+  };
+
+  closeTestModal();
+  showTicket(fakePesee);
+  toast('🧪 Ticket de test généré — non enregistré dans l\'historique');
+}
+
 // ══════════════════════════════════════
 // INIT
 // ══════════════════════════════════════
@@ -1250,5 +1291,27 @@ loadSettings();
 // Auto-reconnect Firebase if previously configured
 setTimeout(autoReconnectFirebase, 500);
 </script>
+
+<!-- TEST MODE MODAL -->
+<div class="modal" id="test-modal" onclick="if(event.target===this)closeTestModal()">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <div style="font-size:15px;font-weight:700;color:var(--gold2);margin-bottom:4px">🧪 Mode Test — Ticket Démo</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:16px">Générez un ticket de test sans peser de camion</div>
+    <div class="fld"><div class="fl">Plaque</div><input class="inp mono" id="t-plate" type="text" placeholder="AB-123-CD" value="TEST-01"></div>
+    <div class="fld"><div class="fl">Type de métal</div>
+      <select class="inp" id="t-metal">
+        <option>Cuivre</option><option>Fer</option><option>Laiton</option><option>Inox</option>
+        <option>Aluminium</option><option>Batteries</option><option>Plomb</option>
+      </select>
+    </div>
+    <div class="fld"><div class="fl">Poids brut (kg)</div><input class="inp" id="t-brut" type="number" placeholder="25000" value="25000" style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700"></div>
+    <div class="fld"><div class="fl">Tare (kg)</div><input class="inp" id="t-tare" type="number" placeholder="12000" value="12000" style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700"></div>
+    <div class="fld"><div class="fl">Notes</div><input class="inp" id="t-notes" type="text" placeholder="Ticket de test..."></div>
+    <button class="btn btn-gold" onclick="generateTestTicket()" style="margin-top:6px">🎫 Générer le ticket de test</button>
+    <button class="btn btn-out" onclick="closeTestModal()" style="margin-top:4px">Annuler</button>
+  </div>
+</div>
+
 </body>
 </html>
