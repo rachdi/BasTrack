@@ -845,8 +845,8 @@ async function _geminiOCRCall(base64img, prompt) {
         const code = d.error.code;
         const msg  = d.error.message || '';
         console.warn(`Gemini ${model} error ${code}:`, msg);
-        if (code === 403 || msg.includes('API_KEY_INVALID')) {
-          toast('❌ Clé API invalide — Réglages → Tester la clé');
+        if (code === 400 || code === 403 || msg.includes('API_KEY_INVALID') || msg.includes('invalid')) {
+          toast('❌ Clé Gemini invalide — Réglages → créez une nouvelle clé sur aistudio.google.com');
           return null;
         }
         if (code === 429) {
@@ -918,8 +918,19 @@ async function testGeminiKey() {
     });
     const d = await r.json();
     if (d.error) {
-      toast('❌ Clé invalide : ' + d.error.message);
+      const code = d.error.code || 0;
+      const msg = d.error.message || '';
       btn.textContent = '🔴 Clé invalide';
+      if (code === 400 || msg.toLowerCase().includes('invalid') || msg.includes('API_KEY')) {
+        toast('❌ CLÉ INVALIDE — Allez sur aistudio.google.com → créer une nouvelle clé');
+      } else if (code === 429) {
+        toast('⚠️ Quota dépassé — mais la clé EST valide ✅ (attendez 1 minute)');
+        btn.textContent = '✅ Clé OK (quota)';
+        settings.apikey = key;
+        localStorage.setItem('afb_settings', JSON.stringify(settings));
+      } else {
+        toast('❌ Erreur ' + code + ' : ' + msg.slice(0,80));
+      }
     } else {
       toast('✅ Clé Gemini valide et fonctionnelle !');
       btn.textContent = '✅ Clé valide';
