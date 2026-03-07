@@ -342,10 +342,29 @@ input[type=file]{display:none}
             <div class="fl">Notes <span class="opt">— optionnel</span></div>
             <textarea class="inp" id="f-notes" rows="2" placeholder="Remarques…" style="resize:none;font-size:13px;line-height:1.5"></textarea>
           </div>
-          <button class="btn btn-gold" onclick="savePeseeEnAttente()">✅ Enregistrer — Camion en attente</button>
-          <button class="btn btn-out" onclick="backToPlate()">← Retour</button>
-          <button class="btn btn-out" onclick="resetNewForm()" style="margin-top:4px;border-color:rgba(239,68,68,.5);color:var(--red)">✕ Annuler — retour accueil</button>
+          <button class="btn btn-gold" onclick="savePeseeEnAttente()" id="btn-save-attente">⏳ Mettre en file d'attente</button>
+          <button class="btn btn-out" onclick="backToPlate()" style="margin-top:4px">← Retour</button>
+          <button class="btn btn-out" onclick="resetNewForm()" style="margin-top:4px;border-color:rgba(239,68,68,.5);color:var(--red)">✕ Annuler</button>
         </div>
+      </div>
+    </div>
+
+    <!-- CONFIRMATION MISE EN FILE D'ATTENTE -->
+    <div id="phase-confirm" style="display:none">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center">
+        <div style="width:70px;height:70px;background:rgba(34,197,94,.12);border:2px solid rgba(34,197,94,.3);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:20px">✅</div>
+        <div style="font-size:19px;font-weight:800;color:var(--text);margin-bottom:4px" id="confirm-title">Camion enregistré</div>
+        <div style="font-size:13px;color:var(--t2);margin-bottom:8px" id="confirm-plate" style="font-family:'JetBrains Mono',monospace;letter-spacing:2px"></div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:36px;line-height:1.6">En attente dans la file.<br>Retrouvez-le dans l'onglet <strong style="color:var(--gold2)">⏳ En attente</strong><br>dès que le camion revient vide.</div>
+        <button class="btn btn-gold" style="width:100%;max-width:300px;padding:16px;font-size:15px;border-radius:12px;margin-bottom:10px" onclick="startNewPesee()">
+          ＋ Nouveau client
+        </button>
+        <button class="btn btn-out" style="width:100%;max-width:300px;padding:12px;font-size:13px" onclick="showScreen('pending')">
+          ⏳ Voir la file d'attente
+        </button>
+        <button class="btn btn-out" style="width:100%;max-width:300px;padding:10px;font-size:12px;margin-top:6px;border-color:rgba(239,68,68,.4);color:var(--red)" onclick="resetNewForm()">
+          ↩ Retour accueil
+        </button>
       </div>
     </div>
 
@@ -687,7 +706,25 @@ document.getElementById('yr').textContent = new Date().getFullYear();
 // NAVIGATION
 // ══════════════════════════════════════
 function startNewPesee() {
+  // Reset form first
+  ['f-plate','f-brut','f-notes'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('f-metal').value='';
+  curPlatePhoto=null; curWeightPhoto=null;
+  ['plate','weight'].forEach(t=>{
+    const z=document.getElementById('zone-'+t);
+    if(!z) return;
+    z.classList.remove('has-img');
+    const id_p = t==='plate'?'file-plate':'file-weight';
+    const empty_txt = t==='plate'
+      ? '<div class="ocr-ico">📸</div><div class="ocr-txt">Photographier la plaque</div><div class="ocr-sub">Gemini lira la plaque automatiquement</div>'
+      : '<div class="ocr-ico">📷</div><div class="ocr-txt">Photographier la balance</div><div class="ocr-sub">Gemini lira le poids automatiquement</div>';
+    z.innerHTML=`<input type="file" id="${id_p}" accept="image/*" capture="environment" onchange="handle${t==='plate'?'Plate':'Weight'}Photo(event${t==='weight'?',"brut"':''})"><div class="ocr-empty" id="${t}-empty">${empty_txt}</div>`;
+  });
+  ['plate-status','weight-status'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
+
+  // Show form, hide home and confirm
   document.getElementById('phase-home').style.display='none';
+  document.getElementById('phase-confirm').style.display='none';
   document.getElementById('phase-form').style.display='block';
   document.getElementById('phase-plate').style.display='block';
   document.getElementById('phase-weight').style.display='none';
@@ -1010,11 +1047,15 @@ function savePeseeEnAttente() {
   savePending();
   savePendingFb(pend);
   updatePendingBadge();
-  if(sameCount > 0)
-    toast(`✅ ${plate} — Passage n°${sameCount+1} enregistré`);
-  else
-    toast(`✅ ${plate} enregistré — en attente de la tare`);
-  resetNewForm();
+
+  // Show confirmation screen
+  document.getElementById('phase-weight').style.display='none';
+  document.getElementById('phase-confirm').style.display='block';
+  document.getElementById('confirm-title').textContent =
+    sameCount > 0 ? `${plate} — Passage n°${sameCount+1} enregistré` : `${plate} mis en file d'attente`;
+  document.getElementById('confirm-plate').textContent =
+    `${pend.metal} · ${pend.brut.toLocaleString('fr-FR')} kg brut`;
+  setStep(2);
 }
 
 function resetNewForm() {
@@ -1038,6 +1079,7 @@ function resetNewForm() {
   document.getElementById('phase-plate').style.display='block';
   document.getElementById('phase-weight').style.display='none';
   document.getElementById('phase-validate').style.display='none';
+  document.getElementById('phase-confirm').style.display='none';
   // Go back to home screen
   document.getElementById('phase-home').style.display='block';
   document.getElementById('phase-form').style.display='none';
@@ -1055,6 +1097,9 @@ function startValidation(pendId) {
 
   // Show validate phase
   showScreen('new');
+  document.getElementById('phase-home').style.display='none';
+  document.getElementById('phase-confirm').style.display='none';
+  document.getElementById('phase-form').style.display='block';
   document.getElementById('phase-plate').style.display='none';
   document.getElementById('phase-weight').style.display='none';
   document.getElementById('phase-validate').style.display='block';
