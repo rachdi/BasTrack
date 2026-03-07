@@ -454,15 +454,29 @@ input[type=file]{display:none}
     <div class="card">
       <div class="ch"><span class="chi">🤖</span><span class="cht">Gemini OCR</span></div>
       <div class="cb">
+
+        <!-- Status Firebase sync -->
+        <div id="gemini-fb-status" style="display:none;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--grn);font-weight:600">
+          🔥 Clé chargée depuis Firebase — synchronisée sur tous vos appareils
+        </div>
+        <div id="gemini-nofb-status" style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--gold2);line-height:1.6">
+          💡 Connectez Firebase en haut pour synchroniser la clé sur tous vos appareils automatiquement
+        </div>
+
         <div class="fld">
-          <div class="fl">Clé API Gemini</div>
+          <div class="fl">Clé API Gemini <span class="opt">— locale sur cet appareil</span></div>
           <input class="inp" id="s-apikey" type="password" placeholder="Collez votre clé ici…" oninput="saveSettings()">
         </div>
-        <button class="btn btn-gold" id="test-key-btn" onclick="testGeminiKey()" style="margin-bottom:10px">🔑 Tester la clé API</button>
-        <div style="font-size:11px;color:var(--t3);line-height:1.6">
+
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <button class="btn btn-gold" id="test-key-btn" onclick="testGeminiKey()" style="flex:1">🔑 Tester la clé</button>
+          <button class="btn btn-out" id="sync-key-btn" onclick="syncGeminiKeyToFirebase()" style="flex:1;display:none">🔥 Enregistrer sur Firebase</button>
+        </div>
+
+        <div style="font-size:11px;color:var(--t3);line-height:1.7">
           Clé gratuite sur <strong style="color:var(--accent2)">aistudio.google.com</strong><br>
-          → "Get API Key" → "Create API key" → copiez → collez ici<br>
-          ⚠️ L'app doit être ouverte via une <strong>URL</strong> (pas fichier local)
+          → "Get API Key" → "Create API key in new project"<br>
+          Après connexion Firebase → "🔥 Enregistrer sur Firebase" → la clé sera chargée automatiquement sur <strong>tous vos appareils</strong>
         </div>
       </div>
     </div>
@@ -578,6 +592,10 @@ function connectFirebase() {
       if (fbConnected) {
         setupFirebaseListeners();
         toast('🔥 Firebase connecté — synchronisation active');
+        // Show sync button
+        const sb = document.getElementById('sync-key-btn');
+        if (sb) sb.style.display = 'flex';
+        document.getElementById('gemini-nofb-status').style.display = 'none';
       }
     });
 
@@ -594,6 +612,22 @@ function connectFirebase() {
 
 function setupFirebaseListeners() {
   if (!fbDb) return;
+
+  // ── Listen to Gemini key stored in Firebase ──
+  fbDb.ref('config/gemini_key').on('value', snap => {
+    const key = snap.val();
+    if (key && key.length > 10) {
+      settings.apikey = key;
+      localStorage.setItem('afb_settings', JSON.stringify(settings));
+      // Update UI
+      const inp = document.getElementById('s-apikey');
+      if (inp && !inp.value) inp.value = key; // only fill if empty
+      document.getElementById('gemini-fb-status').style.display = 'block';
+      document.getElementById('gemini-nofb-status').style.display = 'none';
+      document.getElementById('sync-key-btn').style.display = 'flex';
+      console.log('✅ Gemini key loaded from Firebase');
+    }
+  });
 
   // Listen to pesées
   fbDb.ref('pesees').on('value', snap => {
@@ -769,7 +803,16 @@ function setZonePhoto(zoneId, emptyId, src, label) {
 // ══════════════════════════════════════
 // GEMINI OCR
 // ══════════════════════════════════════
+// Queue to avoid parallel requests hitting rate limit
+let ocrQueue = Promise.resolve();
+
 async function geminiOCR(base64img, prompt) {
+  // Chain requests to avoid parallel 429s
+  const result = await (ocrQueue = ocrQueue.then(() => _geminiOCRCall(base64img, prompt)));
+  return result;
+}
+
+async function _geminiOCRCall(base64img, prompt) {
   const key = settings.apikey || '';
   if(!key) { toast('⚠️ Clé Gemini manquante — allez dans Réglages'); return null; }
 
@@ -777,8 +820,8 @@ async function geminiOCR(base64img, prompt) {
   const mime = 'image/jpeg';
   const b64data = base64img.replace(/^data:[^;]+;base64,/, '');
 
-  // Modèles gratuits confirmés AI Studio (compte gratuit)
-  const models = ['gemini-2.0-flash', 'gemini-2.0-flash-lite'];
+  // Modèles gratuits AI Studio — avec délai entre chaque tentative
+  const models = ['gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-2.0-flash'];
 
   for (const model of models) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
@@ -807,7 +850,7 @@ async function geminiOCR(base64img, prompt) {
           return null;
         }
         if (code === 429) {
-          await new Promise(r => setTimeout(r, 1200));
+          await new Promise(r => setTimeout(r, 2000));
           continue; // try next model
         }
         if (code === 404) {
@@ -834,6 +877,30 @@ async function geminiOCR(base64img, prompt) {
   }
   toast('❌ Gemini ne répond pas — vérifiez votre connexion internet');
   return null;
+} // end _geminiOCRCall
+
+// Sync Gemini key to Firebase — shared across ALL devices
+async function syncGeminiKeyToFirebase() {
+  const key = document.getElementById('s-apikey').value.trim();
+  if (!key) { toast('⚠️ Collez votre clé d\'abord'); return; }
+  if (!fbDb || !fbConnected) { toast('⚠️ Connectez Firebase d\'abord'); return; }
+
+  const btn = document.getElementById('sync-key-btn');
+  btn.textContent = '⟳ Enregistrement…';
+
+  try {
+    await fbDb.ref('config/gemini_key').set(key);
+    settings.apikey = key;
+    localStorage.setItem('afb_settings', JSON.stringify(settings));
+    toast('✅ Clé enregistrée sur Firebase — tous vos appareils la recevront automatiquement');
+    btn.textContent = '✅ Synchronisée';
+    document.getElementById('gemini-fb-status').style.display = 'block';
+    document.getElementById('gemini-nofb-status').style.display = 'none';
+    setTimeout(() => { btn.textContent = '🔥 Enregistrer sur Firebase'; }, 3000);
+  } catch(e) {
+    toast('❌ Erreur Firebase : ' + e.message);
+    btn.textContent = '🔥 Enregistrer sur Firebase';
+  }
 }
 
 // Test Gemini API key
@@ -842,7 +909,7 @@ async function testGeminiKey() {
   if (!key) { toast('⚠️ Saisissez une clé d\'abord'); return; }
   const btn = document.getElementById('test-key-btn');
   btn.textContent = '⟳ Test en cours…';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${key}`;
   try {
     const r = await fetch(url, {
       method:'POST',
@@ -911,23 +978,16 @@ async function ocrSpaceRead(base64img, type) {
   }
 }
 
-// SMART OCR: tries Gemini first, then OCR.space as fallback
+// OCR: Gemini uniquement (OCR.space désactivé — trop imprécis)
 async function smartOCR(base64img, geminiPrompt, type, statusEl) {
-  // Try Gemini first
-  if (settings.apikey) {
-    statusEl.style.display='flex'; statusEl.className='ocr-status loading';
-    statusEl.innerHTML='<span class="spin">⟳</span> Gemini — lecture en cours…';
-    const r = await geminiOCR(base64img, geminiPrompt);
-    if (r) return { result: r, source: 'Gemini' };
+  if (!settings.apikey) {
+    toast('⚠️ Clé Gemini manquante — allez dans Réglages');
+    return null;
   }
-
-  // Fallback to OCR.space
-  if (settings.ocrkey) {
-    statusEl.innerHTML='<span class="spin">⟳</span> OCR.space — lecture en cours…';
-    const r = await ocrSpaceRead(base64img, type);
-    if (r) return { result: r, source: 'OCR.space' };
-  }
-
+  statusEl.style.display='flex'; statusEl.className='ocr-status loading';
+  statusEl.innerHTML='<span class="spin">⟳</span> Gemini — lecture en cours…';
+  const r = await geminiOCR(base64img, geminiPrompt);
+  if (r) return { result: r, source: 'Gemini' };
   return null;
 }
 
@@ -966,15 +1026,15 @@ async function handlePlatePhoto(e) {
   curPlatePhoto = await toBase64(file);
   setZonePhoto('zone-plate','plate-empty',curPlatePhoto,'Photo enregistrée');
 
-  if(!settings.apikey && !settings.ocrkey) {
-    toast('⚠️ Aucune clé OCR — saisissez la plaque manuellement'); return;
+  if(!settings.apikey) {
+    toast('⚠️ Clé Gemini manquante — allez dans Réglages'); return;
   }
 
   const st = document.getElementById('plate-status');
   st.style.display='flex';
 
   const ocr = await smartOCR(curPlatePhoto,
-    'Lis la plaque d\'immatriculation. Réponds UNIQUEMENT avec les caractères, sans texte. Ex: AB-123-CD',
+    'Tu es un lecteur de plaque d\'immatriculation. Regarde cette image et retourne UNIQUEMENT les caractères de la plaque, en majuscules, avec des tirets. Aucun autre mot. Exemple: AB-123-CD ou 12-ABC-34',
     'plate', st);
 
   if(ocr) {
@@ -1004,15 +1064,15 @@ async function handleWeightPhoto(e, type) {
 
   setZonePhoto(zoneId, emptyId, b64, 'Photo enregistrée');
 
-  if(!settings.apikey && !settings.ocrkey) {
-    toast('⚠️ Aucune clé OCR — saisissez le poids manuellement'); return;
+  if(!settings.apikey) {
+    toast('⚠️ Clé Gemini manquante — allez dans Réglages'); return;
   }
 
   const st = document.getElementById(statusId);
   st.style.display='flex';
 
   const ocr = await smartOCR(b64,
-    'Cette image montre un afficheur de balance. Réponds UNIQUEMENT avec le nombre entier en kg, sans unité ni texte. Exemple: 14500',
+    'Tu lis un afficheur de balance industrielle. Retourne UNIQUEMENT le nombre affiché en kilogrammes, sans unité, sans espace, sans virgule. Un seul nombre entier. Exemple: 14500',
     'weight', st);
 
   if(ocr) {
