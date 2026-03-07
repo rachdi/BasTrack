@@ -543,7 +543,6 @@ input[type=file]{display:none}
 let pesees   = JSON.parse(localStorage.getItem('afb_pesees')   || '[]');
 let pending  = JSON.parse(localStorage.getItem('afb_pending')  || '[]');
 let settings = JSON.parse(localStorage.getItem('afb_settings') || '{}');
-if (!settings.apikey) { settings.apikey = 'AIzaSyC9ht_1lNY2V0n76T4BhEW7P039om4tICU'; }
 
 // ══════════════════════════════════════
 // FIREBASE
@@ -944,20 +943,22 @@ async function handlePlatePhoto(e) {
   curPlatePhoto = await toBase64(file);
   setZonePhoto('zone-plate','plate-empty',curPlatePhoto,'Photo enregistrée');
 
-  if(!settings.apikey) { toast('⚠️ Pas de clé Gemini — saisissez la plaque manuellement'); return; }
+  if(!settings.apikey && !settings.ocrkey) {
+    toast('⚠️ Aucune clé OCR — saisissez la plaque manuellement'); return;
+  }
 
   const st = document.getElementById('plate-status');
-  st.style.display='flex'; st.className='ocr-status loading';
-  st.innerHTML='<span class="spin">⟳</span> Lecture de la plaque…';
+  st.style.display='flex';
 
-  const result = await geminiOCR(curPlatePhoto,
-    'Cette image montre une plaque d\'immatriculation de véhicule. Lis uniquement la plaque d\'immatriculation et réponds UNIQUEMENT avec les caractères de la plaque, sans aucun autre texte ni explication. Format attendu: AB-123-CD');
+  const ocr = await smartOCR(curPlatePhoto,
+    'Lis la plaque d\'immatriculation. Réponds UNIQUEMENT avec les caractères, sans texte. Ex: AB-123-CD',
+    'plate', st);
 
-  if(result) {
-    const clean = result.replace(/[^A-Z0-9\-]/gi,'').toUpperCase();
+  if(ocr) {
+    const clean = ocr.result.replace(/[^A-Z0-9\-]/gi,'').toUpperCase();
     document.getElementById('f-plate').value = clean;
     st.className='ocr-status ok';
-    st.innerHTML=`✅ Lu : <strong style="font-family:\'JetBrains Mono\',monospace;letter-spacing:2px">${clean}</strong> — Vérifiez et corrigez si besoin`;
+    st.innerHTML=`✅ ${ocr.source} : <strong style="font-family:'JetBrains Mono',monospace;letter-spacing:2px">${clean}</strong> — Vérifiez si besoin`;
   } else {
     st.className='ocr-status err';
     st.innerHTML='❌ Lecture échouée — saisissez manuellement';
@@ -980,21 +981,23 @@ async function handleWeightPhoto(e, type) {
 
   setZonePhoto(zoneId, emptyId, b64, 'Photo enregistrée');
 
-  if(!settings.apikey) { toast('⚠️ Pas de clé Gemini — saisissez le poids manuellement'); return; }
+  if(!settings.apikey && !settings.ocrkey) {
+    toast('⚠️ Aucune clé OCR — saisissez le poids manuellement'); return;
+  }
 
   const st = document.getElementById(statusId);
-  st.style.display='flex'; st.className='ocr-status loading';
-  st.innerHTML='<span class="spin">⟳</span> Lecture du poids…';
+  st.style.display='flex';
 
-  const result = await geminiOCR(b64,
-    'Cette image montre un afficheur de balance industrielle ou de pont-bascule. Lis uniquement le poids affiché en chiffres. Réponds UNIQUEMENT avec le nombre entier en kilogrammes, sans unité, sans texte, sans espaces. Exemple: 14500');
+  const ocr = await smartOCR(b64,
+    'Cette image montre un afficheur de balance. Réponds UNIQUEMENT avec le nombre entier en kg, sans unité ni texte. Exemple: 14500',
+    'weight', st);
 
-  if(result) {
-    const num = result.replace(/[^0-9]/g,'');
+  if(ocr) {
+    const num = ocr.result.replace(/[^0-9]/g,'');
     document.getElementById(inputId).value = num;
     if(type==='tare') updateNet();
     st.className='ocr-status ok';
-    st.innerHTML=`✅ Lu : <strong style="font-family:\'JetBrains Mono\',monospace">${parseInt(num).toLocaleString('fr-FR')} kg</strong> — Vérifiez et corrigez si besoin`;
+    st.innerHTML=`✅ ${ocr.source} : <strong style="font-family:'JetBrains Mono',monospace">${parseInt(num).toLocaleString('fr-FR')} kg</strong> — Vérifiez si besoin`;
   } else {
     st.className='ocr-status err';
     st.innerHTML='❌ Lecture échouée — saisissez manuellement';
