@@ -1013,7 +1013,7 @@ function toBase64(file) {
       img.onload = () => {
         const canvas = document.createElement('canvas');
         // Max 1600px to reduce payload size
-        const MAX = 1600;
+        const MAX = 800; // Plus petite = moins de quota + plus rapide
         let w = img.width, h = img.height;
         if (w > MAX || h > MAX) {
           if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
@@ -1021,7 +1021,7 @@ function toBase64(file) {
         }
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        res(canvas.toDataURL('image/jpeg', 0.88));
+        res(canvas.toDataURL('image/jpeg', 0.75)); // 0.75 = bon compromis qualité/taille
       };
       img.src = e.target.result;
     };
