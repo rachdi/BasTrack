@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- AmericaFer v3.1 - 2026-03-07 00:28 -->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -772,13 +773,12 @@ async function geminiOCR(base64img, prompt) {
   const key = settings.apikey || '';
   if(!key) { toast('⚠️ Clé Gemini manquante — allez dans Réglages'); return null; }
 
-  // Detect real mime type from base64 header
-  const mimeMatch = base64img.match(/^data:(image\/[a-z+]+);base64,/);
-  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-  const b64data = base64img.replace(/^data:image\/[a-z+]+;base64,/, '');
+  // Always jpeg after toBase64 conversion
+  const mime = 'image/jpeg';
+  const b64data = base64img.replace(/^data:[^;]+;base64,/, '');
 
-  // Models gratuits disponibles Mars 2026
-  const models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+  // Modèles gratuits confirmés AI Studio (compte gratuit)
+  const models = ['gemini-2.0-flash', 'gemini-2.0-flash-lite'];
 
   for (const model of models) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
@@ -799,16 +799,21 @@ async function geminiOCR(base64img, prompt) {
 
       // Check for API errors
       if (d.error) {
-        console.warn(`Gemini ${model} error:`, d.error.message);
-        if (d.error.code === 400 || d.error.code === 403) {
-          toast('❌ Clé API invalide — vérifiez dans Réglages');
+        const code = d.error.code;
+        const msg  = d.error.message || '';
+        console.warn(`Gemini ${model} error ${code}:`, msg);
+        if (code === 403 || msg.includes('API_KEY_INVALID')) {
+          toast('❌ Clé API invalide — Réglages → Tester la clé');
           return null;
         }
-        if (d.error.code === 429) {
-          console.warn(`${model} quota dépassé, essai suivant...`);
-          await new Promise(r => setTimeout(r, 1000)); // wait 1s before next model
-          continue;
+        if (code === 429) {
+          await new Promise(r => setTimeout(r, 1200));
+          continue; // try next model
         }
+        if (code === 404) {
+          continue; // model not available, try next
+        }
+        toast(`⚠️ Gemini : ${msg.slice(0,60)}`);
         continue;
       }
 
@@ -837,7 +842,7 @@ async function testGeminiKey() {
   if (!key) { toast('⚠️ Saisissez une clé d\'abord'); return; }
   const btn = document.getElementById('test-key-btn');
   btn.textContent = '⟳ Test en cours…';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${key}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
   try {
     const r = await fetch(url, {
       method:'POST',
@@ -927,11 +932,29 @@ async function smartOCR(base64img, geminiPrompt, type, statusEl) {
 }
 
 function toBase64(file) {
-  return new Promise((res,rej)=>{
-    const r=new FileReader();
-    r.onload=e=>res(e.target.result);
-    r.onerror=rej;
-    r.readAsDataURL(file);
+  // Always convert to JPEG for maximum API compatibility (handles HEIC, WEBP, PNG from mobile)
+  return new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onerror = rej;
+    reader.onload = e => {
+      const img = new Image();
+      img.onerror = () => res(e.target.result); // fallback: return original
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        // Max 1600px to reduce payload size
+        const MAX = 1600;
+        let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else       { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        res(canvas.toDataURL('image/jpeg', 0.88));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
   });
 }
 
